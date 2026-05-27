@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공구 성공 확률 예측기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F5FA;
+    --surface: #FFFFFF;
+    --surface2: #F8F8FC;
+    --border: #EBEBF5;
+    --text: #12112A;
+    --text2: #6B6B8A;
+    --text3: #ABABC4;
+    --purple: #5B4CF5;
+    --purple2: #7B6FF5;
+    --purple-light: #EEF0FE;
+    --purple-mid: #C8C3FB;
+    --green: #22C55E;
+    --green-light: #EDFAF4;
+    --amber: #F59E0B;
+    --amber-light: #FEF9EC;
+    --red: #EF4444;
+    --red-light: #FEF2F2;
+    --blue: #3B82F6;
+    --blue-light: #EFF6FF;
+    --radius: 20px;
+    --radius-sm: 12px;
+    --radius-xs: 8px;
+    --shadow: 0 2px 16px rgba(91,76,245,0.07);
+    --shadow-lg: 0 8px 32px rgba(91,76,245,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  .page { max-width: 720px; margin: 0 auto; }
+
+  /* ── HEADER ── */
+  .header { margin-bottom: 32px; }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--purple);
+    background: var(--purple-light);
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+
+  .header-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--purple);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.8); }
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.15;
+  }
+
+  .header-sub {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 22px;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── FORM ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  @media (max-width: 520px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    h1 { font-size: 26px; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 7px; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .field input[type="number"]::-webkit-inner-spin-button,
+  .field input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .field input[type="number"] { -moz-appearance: textfield; }
+
+  .field input[type="number"],
+  .field select {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(91,76,245,0.1);
+    background: #fff;
+  }
+
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ABABC4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 22px 0;
+  }
+
+  /* ── GTYPE BUTTONS ── */
+  .gtype-btn {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    transition: all 0.18s;
+    background: var(--surface2);
+    cursor: pointer;
+    height: 100%;
+  }
+
+  .gtype-btn:hover { border-color: var(--purple-mid); }
+
+  .gtype-btn.active {
+    border-color: var(--purple);
+    background: var(--purple-light);
+    box-shadow: 0 0 0 3px rgba(91,76,245,0.1);
+  }
+
+  .gtype-btn.active .gtype-title { color: var(--purple); }
+
+  .gtype-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--text); }
+  .gtype-desc  { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  /* ── HAL STEPS ── */
+  .steps-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .steps-header-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .btn-add-step {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    background: var(--purple-light);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--purple);
+    transition: background 0.15s;
+  }
+
+  .btn-add-step:hover { background: var(--purple-mid); color: #fff; }
+
+  .steps-col-header {
+    display: grid;
+    grid-template-columns: 26px 1fr 1fr 1fr 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+
+  .steps-col-header span {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .step-row {
+    display: grid;
+    grid-template-columns: 26px 1fr 1fr 1fr 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .step-badge {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--purple-light);
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-discount {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--purple);
+    text-align: center;
+    background: var(--purple-light);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-xs);
+    padding: 9px 8px;
+  }
+
+  #hal-steps input[type="number"]::-webkit-inner-spin-button,
+  #hal-steps input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  #hal-steps input[type="number"] { -moz-appearance: textfield; }
+  #hal-steps input {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-xs);
+    padding: 8px 10px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #hal-steps input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(91,76,245,0.1);
+    background: #fff;
+  }
+
+  /* ── CALC BUTTON ── */
+  .btn-calc {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple2) 100%);
+    color: #fff;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px rgba(91,76,245,0.35);
+  }
+
+  .btn-calc:hover { opacity: 0.92; box-shadow: 0 6px 20px rgba(91,76,245,0.45); }
+  .btn-calc:active { transform: scale(0.99); }
+
+  /* ── RESULT SECTION ── */
+  .result-section { display: none; animation: fadeUp 0.4s ease both; }
+  .result-section.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Result card — white */
+  .result-hero {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-hero::before { display: none; }
+  .result-hero::after  { display: none; }
+
+  .result-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .result-hero-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  .gtype-chip {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .result-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /* SVG Gauge */
+  .gauge-wrap {
+    flex-shrink: 0;
+    position: relative;
+    width: 120px;
+    height: 120px;
+  }
+
+  .gauge-wrap svg { width: 120px; height: 120px; }
+
+  .gauge-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .gauge-pct {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    display: block;
+    letter-spacing: -0.03em;
+    transition: color 0.4s;
+  }
+
+  .gauge-sub {
+    font-size: 10px;
+    color: var(--text3);
+    display: block;
+    margin-top: 3px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .result-verdict { flex: 1; }
+
+  .verdict-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  .verdict-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    line-height: 1.2;
+    transition: color 0.4s;
+  }
+
+  .verdict-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ── FACTORS ── */
+  .factors-section { margin-bottom: 22px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .factor-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .factor-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  .factor-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .factor-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  .factor-tag {
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    width: 115px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── TIPS ── */
+  .tips-section {
+    border-top: 1.5px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .tip-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 13px 15px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+    border: 1.5px solid transparent;
+  }
+
+  .tip-item:last-child { margin-bottom: 0; }
+  .tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .tip-text { font-weight: 600; }
+
+  /* ── DATA NOTE ── */
+  .data-note {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  .stage-card {
+    flex: 1;
+    min-width: 140px;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stage-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stage-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .stage-verdict-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .stage-prob {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .stage-prob-label {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .stage-bar-bg {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stage-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  .stage-divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  .stage-factor-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .stage-factor-name {
+    color: var(--text3);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .stage-factor-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .stage-factor-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  .stage-factor-val {
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 10px;
+    min-width: 28px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-badge">
+      <div class="header-dot"></div>
+      OK캐쉬백 쇼핑탭
+    </div>
+    <h1>공구 성공 확률 예측기</h1>
+    <p class="header-sub">카테고리, 가격, 할인율, 공구 방식을 입력하면 성공 확률과 개선 포인트를 알려드립니다.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">상품 정보</div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label>브랜드 카테고리</label>
+      <select id="brand">
+        <option value="coffee_cheap">커피 프랜차이즈 — 저가 (메가·컴포즈)</option>
+        <option value="coffee_mid">커피 프랜차이즈 — 중고가 (이디야·스타벅스)</option>
+        <option value="voucher">상품권·교환권 (쿠팡이츠·파리바게뜨 등)</option>
+        <option value="food_delivery">배달·간편식</option>
+        <option value="food_brand">식품 브랜드 (GS25·BBQ·동원 등)</option>
+        <option value="health">건강·다이어트 식품</option>
+        <option value="beauty">뷰티·생활용품</option>
+        <option value="bakery">베이커리·디저트</option>
+        <option value="other">기타</option>
+      </select>
+    </div>
+
+    <div class="grid2" style="margin-bottom:16px; align-items:end;">
+      <div class="field">
+        <label>원가 (원)</label>
+        <input type="number" id="retail" placeholder="예: 10000" min="0" value="10000">
+      </div>
+      <div class="field">
+        <label>공구가 (원)</label>
+        <input type="number" id="sale" placeholder="예: 9000" min="0" value="9000">
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-bottom:16px; align-items:end;">
+      <div class="field">
+        <label>할인율 (%)</label>
+        <input type="number" id="discount" placeholder="예: 10" min="0" max="99" value="10">
+      </div>
+      <div class="field">
+        <label>목표 수량 (개)</label>
+        <input type="number" id="qty" placeholder="예: 100" min="1" value="100">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card-title" style="margin-bottom:16px;">공구 방식</div>
+
+    <div class="grid2" style="margin-bottom:16px;">
+      <label style="cursor:pointer; display:block; height:100%;">
+        <input type="radio" name="gtype" id="gtype_dduk" value="dduk" checked style="display:none;">
+        <div class="gtype-btn active" id="btn_dduk" onclick="selectGtype('dduk')">
+          <div class="gtype-title">득템 공구</div>
+          <div class="gtype-desc">목표 인원 달성 시 성공<br>성공하면 득템!</div>
+        </div>
+      </label>
+      <label style="cursor:pointer; display:block; height:100%;">
+        <input type="radio" name="gtype" id="gtype_hal" value="hal" style="display:none;">
+        <div class="gtype-btn" id="btn_hal" onclick="selectGtype('hal')">
+          <div class="gtype-title">할인 공구</div>
+          <div class="gtype-desc">모일수록 할인율 상승<br>단계별 할인 구조</div>
+        </div>
+      </label>
+    </div>
+
+    <div id="hal-steps-wrap" style="display:none; margin-bottom:4px;">
+      <div class="steps-header">
+        <span class="steps-header-label">단계별 수량 · 공구가</span>
+        <button type="button" class="btn-add-step" onclick="addStep()" id="btn-add-step">+ 추가</button>
+      </div>
+      <div class="steps-col-header">
+        <span></span>
+        <span>목표 수량</span>
+        <span>공구가 (원)</span>
+        <span>할인율</span>
+        <span></span>
+      </div>
+      <div id="hal-steps"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn-calc" onclick="calculate()">공구 성공 확률 예측하기</button>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-section" id="result-section">
+
+    <div class="result-hero">
+      <div class="result-hero-top">
+        <span class="result-hero-label">예측 결과</span>
+        <span class="gtype-chip" id="gtype-label"></span>
+      </div>
+      <div class="result-hero-main">
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="50" stroke="#EBEBF5" stroke-width="10"/>
+            <circle id="gauge-ring" cx="60" cy="60" r="50"
+              stroke="#fff" stroke-width="10"
+              stroke-linecap="round"
+              stroke-dasharray="314"
+              stroke-dashoffset="314"
+              transform="rotate(-90 60 60)"
+              style="transition: stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1);"/>
+          </svg>
+          <div class="gauge-center">
+            <span class="gauge-pct" id="gauge-pct">0%</span>
+            <span class="gauge-sub">성공 확률</span>
+          </div>
+        </div>
+        <div class="result-verdict">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+            <div class="verdict-title" id="verdict-text" style="margin-bottom:0;">—</div>
+            <div class="verdict-badge" id="verdict-badge" style="margin-bottom:0; font-size:13px;"></div>
+          </div>
+          <div class="verdict-desc" id="verdict-desc">—</div>
+        </div>
+      </div>
+
+      <div id="hal-stage-result" style="display:none; margin-top:20px; padding-top:20px; border-top:1.5px solid var(--border);">
+        <div class="section-label" style="margin-bottom:12px;">단계별 예측 결과</div>
+        <div id="hal-stage-list" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div id="factor-section" style="margin-top:28px; padding-top:24px; border-top:1.5px solid var(--border);">
+        <div class="section-label">요인 분석</div>
+        <div class="factor-row">
+          <div class="factor-label">할인율 반응도</div>
+          <div class="factor-bar-wrap"><div class="factor-bar-fill" id="fb-discount"></div></div>
+          <div class="factor-tag" id="f-discount">—</div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label">가격대 경쟁력</div>
+          <div class="factor-bar-wrap"><div class="factor-bar-fill" id="fb-price"></div></div>
+          <div class="factor-tag" id="f-price">—</div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label">카테고리 전환율</div>
+          <div class="factor-bar-wrap"><div class="factor-bar-fill" id="fb-cat"></div></div>
+          <div class="factor-tag" id="f-cat">—</div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-label">유사 성공 기준</div>
+          <div class="factor-bar-wrap"><div class="factor-bar-fill" id="fb-similar"></div></div>
+          <div class="factor-tag" id="f-similar">—</div>
+        </div>
+        <div class="factor-row" style="margin-bottom:0;">
+          <div class="factor-label">수량 난이도</div>
+          <div class="factor-bar-wrap"><div class="factor-bar-fill" id="fb-qty"></div></div>
+          <div class="factor-tag" id="f-qty">—</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; padding-top:22px; border-top:1.5px solid var(--border);">
+        <div class="section-label" style="margin-bottom:12px;">개선 포인트</div>
+        <div id="tips-area"></div>
+      </div>
+    </div>
+
+    <p class="data-note">※ 2026년 4~5월 OK캐쉬백 공구 실적 데이터 기반 통계 모델 · 참고 지표이며 실제 결과와 다를 수 있습니다.</p>
+  </div>
+
+</div>
+
+<script>
+let selectedGtype = 'dduk';
+let halStepCount = 2;
+const MAX_STEPS = 5;
+
+function selectGtype(val) {
+  selectedGtype = val;
+  document.getElementById('btn_dduk').classList.toggle('active', val === 'dduk');
+  document.getElementById('btn_hal').classList.toggle('active', val === 'hal');
+  document.getElementById('hal-steps-wrap').style.display = val === 'hal' ? 'block' : 'none';
+}
+selectGtype('dduk');
+
+const retailInput   = document.getElementById('retail');
+const saleInput     = document.getElementById('sale');
+const discountInput = document.getElementById('discount');
+
+function makeRow(i, isLast, qtyVal, priceVal) {
+  const row = document.createElement('div');
+  row.className = 'step-row';
+
+  const badge = document.createElement('div');
+  badge.className = 'step-badge';
+  badge.textContent = i + 1;
+
+  const discountEl = document.createElement('div');
+  discountEl.className = 'step-discount';
+  discountEl.id = 'step-disc-' + i;
+
+  if (isLast) {
+    // 마지막 행: 상품정보 값으로 고정, 편집 불가
+    const qtyDisp = document.createElement('div');
+    qtyDisp.style.cssText = 'font-size:13px;font-weight:700;color:var(--purple);text-align:center;background:var(--purple-light);border:1.5px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;';
+    qtyDisp.textContent = qtyVal || '—';
+
+    const priceDisp = document.createElement('div');
+    priceDisp.style.cssText = 'font-size:13px;font-weight:700;color:var(--purple);text-align:center;background:var(--purple-light);border:1.5px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;';
+    priceDisp.textContent = priceVal ? Number(priceVal).toLocaleString() + '원' : '—';
+
+    function updateLastDisc() {
+      const r = parseFloat(retailInput.value) || 0;
+      const p = parseFloat(priceVal) || 0;
+      discountEl.textContent = (r > 0 && p > 0 && p < r) ? Math.round((1 - p / r) * 100) + '%' : '—';
+    }
+    updateLastDisc();
+    retailInput.addEventListener('input', updateLastDisc);
+    saleInput.addEventListener('input', () => {
+      const s = parseFloat(saleInput.value) || 0;
+      const r = parseFloat(retailInput.value) || 0;
+      priceDisp.textContent = s ? s.toLocaleString() + '원' : '—';
+      qtyDisp.textContent = document.getElementById('qty').value || '—';
+      discountEl.textContent = (r > 0 && s > 0 && s < r) ? Math.round((1 - s / r) * 100) + '%' : '—';
+    });
+
+    const placeholder = document.createElement('div');
+    placeholder.style.cssText = 'width:24px;height:24px;flex-shrink:0;';
+
+    row.appendChild(badge);
+    row.appendChild(qtyDisp);
+    row.appendChild(priceDisp);
+    row.appendChild(discountEl);
+    row.appendChild(placeholder);
+
+  } else {
+    // 일반 행: 편집 가능
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.placeholder = '예: ' + (100 * (i + 1));
+    qtyInput.className = 'step-qty';
+    qtyInput.min = 1;
+    qtyInput.value = qtyVal || '';
+
+    const priceInput = document.createElement('input');
+    priceInput.type = 'number';
+    priceInput.placeholder = '원';
+    priceInput.className = 'step-price';
+    priceInput.min = 0;
+    priceInput.value = priceVal || '';
+
+    function updateDisc() {
+      const r = parseFloat(retailInput.value) || 0;
+      const p = parseFloat(priceInput.value) || 0;
+      discountEl.textContent = (r > 0 && p > 0 && p < r) ? Math.round((1 - p / r) * 100) + '%' : '—';
+    }
+    priceInput.addEventListener('input', updateDisc);
+    retailInput.addEventListener('input', updateDisc);
+    updateDisc();
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = '×';
+    deleteBtn.style.cssText = 'width:24px;height:24px;border-radius:50%;border:1.5px solid #EBEBF5;background:#F8F8FC;color:#ABABC4;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;transition:all 0.15s;flex-shrink:0;';
+    deleteBtn.onmouseover = () => { deleteBtn.style.background = '#FEF2F2'; deleteBtn.style.color = '#EF4444'; deleteBtn.style.borderColor = '#EF4444'; };
+    deleteBtn.onmouseout  = () => { deleteBtn.style.background = '#F8F8FC'; deleteBtn.style.color = '#ABABC4'; deleteBtn.style.borderColor = '#EBEBF5'; };
+    deleteBtn.onclick = () => removeStepAt(i);
+
+    row.appendChild(badge);
+    row.appendChild(qtyInput);
+    row.appendChild(priceInput);
+    row.appendChild(discountEl);
+    row.appendChild(deleteBtn);
+  }
+
+  return row;
+}
+
+function renderSteps() {
+  const container = document.getElementById('hal-steps');
+  // 기존 편집 가능 행 데이터 보존 (마지막 행 제외)
+  const rows = container.querySelectorAll('.step-row');
+  const prevData = [];
+  rows.forEach((r, idx) => {
+    if (idx < rows.length - 1) { // 마지막 행 제외
+      prevData.push({
+        qty:   r.querySelector('.step-qty')   ? r.querySelector('.step-qty').value   : '',
+        price: r.querySelector('.step-price') ? r.querySelector('.step-price').value : '',
+      });
+    }
+  });
+
+  container.innerHTML = '';
+  const totalRows = halStepCount + 1; // 편집 행 + 마지막 고정 행
+
+  for (let i = 0; i < totalRows; i++) {
+    const isLast = i === totalRows - 1;
+    if (isLast) {
+      const qtyVal   = document.getElementById('qty').value;
+      const priceVal = saleInput.value;
+      container.appendChild(makeRow(i, true, qtyVal, priceVal));
+    } else {
+      const d = prevData[i] || {};
+      container.appendChild(makeRow(i, false, d.qty || '', d.price || ''));
+    }
+  }
+
+  const addBtn = document.getElementById('btn-add-step');
+  addBtn.disabled = halStepCount >= MAX_STEPS;
+  addBtn.style.opacity = halStepCount >= MAX_STEPS ? '0.4' : '1';
+}
+
+function addStep() {
+  if (halStepCount < MAX_STEPS) { halStepCount++; renderSteps(); }
+}
+
+function removeStepAt(idx) {
+  if (halStepCount <= 1) return;
+  const rows = container => container.querySelectorAll('#hal-steps .step-row');
+  const allRows = rows(document);
+  const saved = [];
+  allRows.forEach((r, i) => {
+    if (i !== idx && i < allRows.length - 1) { // 마지막(고정) 행 제외
+      saved.push({
+        qty:   r.querySelector('.step-qty')   ? r.querySelector('.step-qty').value   : '',
+        price: r.querySelector('.step-price') ? r.querySelector('.step-price').value : '',
+      });
+    }
+  });
+  halStepCount--;
+  renderSteps();
+  const newRows = document.querySelectorAll('#hal-steps .step-row');
+  saved.forEach((d, i) => {
+    if (i < newRows.length - 1 && newRows[i]) {
+      if (newRows[i].querySelector('.step-qty'))   newRows[i].querySelector('.step-qty').value   = d.qty;
+      if (newRows[i].querySelector('.step-price')) newRows[i].querySelector('.step-price').value = d.price;
+      if (newRows[i].querySelector('.step-price')) newRows[i].querySelector('.step-price').dispatchEvent(new Event('input'));
+    }
+  });
+}
+
+retailInput.addEventListener('input', () => {
+  syncFromDiscount();
+  if (selectedGtype === 'hal') renderSteps();
+});
+saleInput.addEventListener('input', syncFromSale);
+saleInput.addEventListener('input', () => { if (selectedGtype === 'hal') renderSteps(); });
+discountInput.addEventListener('input', syncFromDiscount);
+discountInput.addEventListener('input', () => { if (selectedGtype === 'hal') renderSteps(); });
+document.getElementById('qty').addEventListener('input', () => { if (selectedGtype === 'hal') renderSteps(); });
+renderSteps();
+
+function syncFromDiscount() {
+  const r = parseFloat(retailInput.value);
+  const d = parseFloat(discountInput.value);
+  if (r > 0 && d >= 0 && d < 100) {
+    saleInput.value = Math.round(r * (1 - d / 100));
+  }
+}
+
+function syncFromSale() {
+  const r = parseFloat(retailInput.value);
+  const s = parseFloat(saleInput.value);
+  if (r > 0 && s > 0 && s <= r) {
+    discountInput.value = Math.round((1 - s / r) * 100);
+  }
+}
+
+const CAT_BASE = {
+  coffee_cheap:  { cvr: 72, success: 40 },
+  coffee_mid:    { cvr: 55, success: 28 },
+  voucher:       { cvr: 85, success: 45 },
+  food_delivery: { cvr: 60, success: 25 },
+  food_brand:    { cvr: 58, success: 27 },
+  health:        { cvr: 70, success: 30 },
+  beauty:        { cvr: 38, success: 10 },
+  bakery:        { cvr: 50, success: 18 },
+  other:         { cvr: 45, success: 15 },
+};
+
+function discountScore(d) {
+  if (d >= 40) return { pts: 30, label: '매우 강함 (40%+)', color: '#22C55E' };
+  if (d >= 30) return { pts: 24, label: '강함 (30~39%)',    color: '#22C55E' };
+  if (d >= 20) return { pts: 18, label: '보통 (20~29%)',    color: '#5B4CF5' };
+  if (d >= 10) return { pts: 10, label: '약함 (10~19%)',    color: '#F59E0B' };
+  if (d >= 1)  return { pts:  2, label: '미흡 (1~9%)',      color: '#EF4444' };
+  return             { pts: -10, label: '없음 (0%)',         color: '#EF4444' };
+}
+
+function priceScore(tier) {
+  const map = {
+    very_low: { pts: 15, label: '매우 좋음 (2천↓)',  color: '#22C55E' },
+    low:      { pts: 10, label: '좋음 (2~5천)',       color: '#22C55E' },
+    mid:      { pts:  5, label: '보통 (5천~1만)',     color: '#5B4CF5' },
+    high:     { pts: -5, label: '낮음 (1~2만)',       color: '#F59E0B' },
+    very_high:{ pts:-15, label: '매우 낮음 (2만↑)',   color: '#EF4444' },
+  };
+  return map[tier];
+}
+
+function gtypeScore(g) {
+  return g === 'hal' ? { pts: 4 } : { pts: 2 };
+}
+
+function qtyScore(q) {
+  if (q <= 50)   return { pts: 10, label: '소량 (50개↓)',      color: '#22C55E' };
+  if (q <= 100)  return { pts:  5, label: '보통 (51~100개)',    color: '#5B4CF5' };
+  if (q <= 200)  return { pts:  0, label: '다소 많음 (101~200개)', color: '#F59E0B' };
+  if (q <= 500)  return { pts: -8, label: '많음 (201~500개)',   color: '#F59E0B' };
+  return               { pts:-18, label: '매우 많음 (500↑)',    color: '#EF4444' };
+}
+
+function getPriceTier(v) {
+  if (v <= 2000)  return 'very_low';
+  if (v <= 5000)  return 'low';
+  if (v <= 10000) return 'mid';
+  if (v <= 20000) return 'high';
+  return 'very_high';
+}
+
+function calculate() {
+  const brand  = document.getElementById('brand').value;
+  const retail = parseFloat(retailInput.value) || 0;
+  const tier   = getPriceTier(retail);
+  const gtype  = selectedGtype;
+
+  let d, qty;
+
+  if (gtype === 'hal') {
+    const rows = document.querySelectorAll('#hal-steps .step-row');
+    let maxDisc = 0, maxQty = 0;
+
+    // 단계별 데이터 수집 (입력된 행만)
+    const halStages = [];
+    rows.forEach((row, idx) => {
+      const pi = row.querySelector('.step-price');
+      const qi = row.querySelector('.step-qty');
+      const isLastRow = idx === rows.length - 1;
+
+      let p, q;
+      if (isLastRow) {
+        p = parseFloat(saleInput.value) || 0;
+        q = parseInt(document.getElementById('qty').value) || 0;
+      } else {
+        p = pi ? parseFloat(pi.value) || 0 : 0;
+        q = qi ? parseInt(qi.value) || 0 : 0;
+      }
+
+      if (p > 0 && q > 0) {
+        const disc = retail > 0 && p < retail ? Math.round((1 - p / retail) * 100) : 0;
+        halStages.push({ step: halStages.length + 1, qty: q, price: p, disc });
+        if (disc > maxDisc) maxDisc = disc;
+        if (q > maxQty) maxQty = q;
+      }
+    });
+
+    d   = maxDisc || parseInt(discountInput.value);
+    qty = maxQty  || 100;
+
+    // 단계별 예측 렌더링 (setTimeout 내부에서 처리하도록 저장)
+    window._halStages = halStages;
+  } else {
+    d   = parseInt(discountInput.value);
+    qty = parseInt(document.getElementById('qty').value) || 100;
+  }
+
+  const base = CAT_BASE[brand];
+  const ds   = discountScore(d);
+  const ps   = priceScore(tier);
+  const gs   = gtypeScore(gtype);
+  const qs   = qtyScore(qty);
+
+  const raw  = base.success + ds.pts + ps.pts + gs.pts + qs.pts;
+  const prob = Math.min(99, Math.max(10, Math.round(raw)));
+
+  let verdictBadge, verdictTitle, verdictDesc, accentColor, accentBg;
+  if (prob >= 75) {
+    verdictBadge = '성공 가능성 높음';
+    verdictTitle = '성공 가능성 높음';
+    verdictDesc  = '유사 조건의 상품 대부분이 목표를 달성했습니다. 현재 기획을 그대로 진행해도 좋습니다.';
+    accentColor  = '#16A34A';
+    accentBg     = '#EDFAF4';
+  } else if (prob >= 55) {
+    verdictBadge = '조건 보완 권장';
+    verdictTitle = '성공 가능';
+    verdictDesc  = '할인율 조정 또는 가격대 재설정으로 성공률을 높일 수 있습니다.';
+    accentColor  = '#5B4CF5';
+    accentBg     = '#EEF0FE';
+  } else if (prob >= 35) {
+    verdictBadge = '재검토 필요';
+    verdictTitle = '성공 불확실';
+    verdictDesc  = '현재 조건에서 성공 사례는 드문 편입니다. 카테고리·할인율을 재검토하세요.';
+    accentColor  = '#F59E0B';
+    accentBg     = '#FEF9EC';
+  } else {
+    verdictBadge = '성공 어려움';
+    verdictTitle = '공구 성공 어려움';
+    verdictDesc  = '데이터상 이 조건의 성공 사례가 매우 적습니다. 상품 조건을 전면 재검토하세요.';
+    accentColor  = '#DC2626';
+    accentBg     = '#FEF2F2';
+  }
+
+  const circumference = 314;
+  const offset = circumference - (prob / 100) * circumference;
+
+  const section = document.getElementById('result-section');
+  section.classList.remove('visible');
+
+  setTimeout(() => {
+    section.classList.add('visible');
+
+    document.getElementById('gtype-label').textContent = gtype === 'dduk' ? '득템 공구' : `할인 공구 ${halStepCount}단계`;
+    document.getElementById('verdict-badge').textContent  = verdictBadge;
+    document.getElementById('verdict-badge').style.background = accentBg;
+    document.getElementById('verdict-badge').style.color      = accentColor;
+    document.getElementById('verdict-text').textContent   = verdictTitle;
+    document.getElementById('verdict-text').style.color   = accentColor;
+    document.getElementById('verdict-desc').textContent   = verdictDesc;
+
+    const ring = document.getElementById('gauge-ring');
+    ring.style.stroke = accentColor;
+    setTimeout(() => { ring.style.strokeDashoffset = offset; }, 60);
+
+    const pctEl = document.getElementById('gauge-pct');
+    pctEl.style.color = accentColor;
+    let cur = 0;
+    const step = prob / 40;
+    const timer = setInterval(() => {
+      cur = Math.min(cur + step, prob);
+      pctEl.textContent = Math.round(cur) + '%';
+      if (cur >= prob) clearInterval(timer);
+    }, 18);
+
+    // 팩터 막대 헬퍼
+    function setBar(barId, tagId, pct, color, label) {
+      const fill = document.getElementById(barId);
+      const tag  = document.getElementById(tagId);
+      if (!fill || !tag) return;
+      fill.style.background = color;
+      tag.textContent = label;
+      tag.style.color = color;
+      setTimeout(() => { fill.style.width = Math.max(4, pct) + '%'; }, 120);
+    }
+
+    // 할인공구: 요인분석 숨기고 단계별로 대체
+    const factorSection = document.getElementById('factor-section');
+    const stageWrap = document.getElementById('hal-stage-result');
+    const stageList = document.getElementById('hal-stage-list');
+
+    if (gtype === 'hal' && window._halStages && window._halStages.length > 0) {
+      factorSection.style.display = 'none';
+      stageWrap.style.display = 'block';
+
+      const totalStages = window._halStages.length;
+
+      stageList.innerHTML = window._halStages.map((s, i) => {
+        const sDs  = discountScore(s.disc);
+        const sQs  = qtyScore(s.qty);
+        const sPs  = ps; // 가격대는 원가 기준 공통
+        const sRaw = base.success + sDs.pts + sPs.pts + gs.pts + sQs.pts;
+        const sProb = Math.min(99, Math.max(10, Math.round(sRaw)));
+
+        let sColor, sBg, sLabel, sVerdictTitle;
+        if (sProb >= 75)      { sColor='#16A34A'; sBg='#EDFAF4'; sLabel='성공 가능성 높음'; sVerdictTitle='성공 가능'; }
+        else if (sProb >= 55) { sColor='#5B4CF5'; sBg='#EEF0FE'; sLabel='조건 보완 권장';   sVerdictTitle='성공 가능'; }
+        else if (sProb >= 35) { sColor='#F59E0B'; sBg='#FEF9EC'; sLabel='재검토 필요';      sVerdictTitle='성공 불확실'; }
+        else                  { sColor='#DC2626'; sBg='#FEF2F2'; sLabel='성공 어려움';       sVerdictTitle='성공 어려움'; }
+
+        // 세부 요인 데이터
+        const factors = [
+          { name:'할인율', pct: Math.round(((sDs.pts+10)/40)*100), color: sDs.color, val: s.disc+'%' },
+          { name:'가격대', pct: Math.round(((sPs.pts+15)/30)*100), color: sPs.color, val: sPs.label.split(' ')[0] },
+          { name:'수량',   pct: Math.round(((sQs.pts+18)/28)*100), color: sQs.color, val: sQs.label.split(' ')[0] },
+          { name:'카테고리', pct: Math.round((base.cvr/85)*100), color: base.cvr>=70?'#22C55E':base.cvr>=55?'#5B4CF5':'#F59E0B', val: base.cvr+'%' },
+        ];
+
+        const factorRows = factors.map((f, fi) =>
+          `<div class="stage-factor-row">
+            <span class="stage-factor-name">${f.name}</span>
+            <div class="stage-factor-bar-wrap">
+              <div class="stage-factor-bar-fill" id="sfb-${i}-${fi}" style="background:${f.color};"></div>
+            </div>
+            <span class="stage-factor-val" style="color:${f.color};">${f.val}</span>
+          </div>`
+        ).join('');
+
+        return `
+          <div class="stage-card">
+            <div class="stage-top">
+              <div class="stage-num" style="background:${sBg};color:${sColor};">${s.step}</div>
+              <div class="stage-verdict-badge" style="background:${sBg};color:${sColor};">${sLabel}</div>
+            </div>
+            <div>
+              <div class="stage-prob" style="color:${sColor};">${sProb}%</div>
+              <div class="stage-prob-label" style="color:${sColor};">${sVerdictTitle}</div>
+            </div>
+            <div class="stage-bar-bg">
+              <div class="stage-bar-fill" id="stage-bar-${i}" style="background:${sColor};"></div>
+            </div>
+            <div class="stage-divider"></div>
+            <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;">
+              수량 ${s.qty.toLocaleString()}개 · 공구가 ${s.price.toLocaleString()}원 · 할인율 ${s.disc}%
+            </div>
+            ${factorRows}
+          </div>`;
+      }).join('');
+
+      // 막대 애니메이션
+      window._halStages.forEach((s, i) => {
+        const sDs  = discountScore(s.disc);
+        const sQs  = qtyScore(s.qty);
+        const sRaw = base.success + sDs.pts + ps.pts + gs.pts + sQs.pts;
+        const sProb = Math.min(99, Math.max(10, Math.round(sRaw)));
+        const factors = [
+          Math.round(((sDs.pts+10)/40)*100),
+          Math.round(((ps.pts+15)/30)*100),
+          Math.round(((sQs.pts+18)/28)*100),
+          Math.round((base.cvr/85)*100),
+        ];
+        setTimeout(() => {
+          const bar = document.getElementById('stage-bar-' + i);
+          if (bar) bar.style.width = sProb + '%';
+          factors.forEach((pct, fi) => {
+            const fb = document.getElementById(`sfb-${i}-${fi}`);
+            if (fb) fb.style.width = Math.max(4, pct) + '%';
+          });
+        }, 200 + i * 80);
+      });
+
+    } else {
+      // 득템공구: 요인분석 표시, 단계별 숨김
+      factorSection.style.display = 'block';
+      stageWrap.style.display = 'none';
+
+      const discPct  = Math.round(((ds.pts + 10) / 40) * 100);
+      const pricePct = Math.round(((ps.pts + 15) / 30) * 100);
+      const catPct   = Math.round((base.cvr / 85) * 100);
+      const simPct   = Math.round((base.success / 45) * 100);
+      const qtyPct   = Math.round(((qs.pts + 18) / 28) * 100);
+
+      setBar('fb-discount', 'f-discount', discPct,  ds.color, ds.label);
+      setBar('fb-price',    'f-price',    pricePct, ps.color, ps.label);
+      setBar('fb-cat',      'f-cat',      catPct,   base.cvr >= 70 ? '#22C55E' : base.cvr >= 55 ? '#5B4CF5' : '#F59E0B', base.cvr + '%');
+      setBar('fb-similar',  'f-similar',  simPct,   base.success >= 38 ? '#22C55E' : base.success >= 25 ? '#5B4CF5' : '#F59E0B', base.success + '%');
+      setBar('fb-qty',      'f-qty',      qtyPct,   qs.color, qs.label);
+    }
+
+    // 팁 (공통)
+    const tips = [];
+    if (d < 10) tips.push({ bg: '#FEF9EC', border: '#FDE68A', icon: '⚠️', text: '할인율 10% 이상부터 클릭 전환율이 유의미하게 상승합니다. 공구가를 낮춰 할인율을 높여보세요.' });
+    if (tier === 'high' || tier === 'very_high') tips.push({ bg: '#FEF2F2', border: '#FECACA', icon: '🚫', text: '2만원 이상 고가 상품은 데이터상 실패율이 높습니다. 소용량·단품으로 가격 진입점을 낮추는 전략이 효과적입니다.' });
+    if (qty > 300) tips.push({ bg: '#FEF2F2', border: '#FECACA', icon: '🚫', text: `목표 수량 ${qty.toLocaleString()}개는 달성 난이도가 높습니다. 초기 목표를 100~200개로 낮춰 성공 후 재진행하는 전략을 권장합니다.` });
+    else if (qty > 100) tips.push({ bg: '#FEF9EC', border: '#FDE68A', icon: '⚠️', text: `목표 수량 ${qty.toLocaleString()}개는 다소 높은 편입니다. 카테고리·할인율 조건이 좋지 않다면 수량을 줄여 성공률을 높이는 것을 고려하세요.` });
+    if (brand === 'beauty') tips.push({ bg: '#FEF9EC', border: '#FDE68A', icon: '⚠️', text: '뷰티·생활용품은 OK캐쉬백 쇼핑탭에서 커피·교환권 대비 전환율이 낮은 카테고리입니다. 진입 가격을 낮추거나 번들 구성을 검토해보세요.' });
+    if (d >= 20 && (tier === 'very_low' || tier === 'low')) tips.push({ bg: '#EDFAF4', border: '#A7F3D0', icon: '✅', text: '저가 + 20% 이상 할인 조합은 이번 데이터에서 가장 성공률이 높은 패턴입니다. 현재 방향을 유지하세요.' });
+    if (gtype === 'hal') tips.push({ bg: '#EEF0FE', border: '#C8C3FB', icon: '💡', text: '할인 공구는 단계별 할인 구조를 고객에게 명확히 노출하는 것이 중요합니다. 1단계·2단계 할인가를 상품 설명에 강조하세요.' });
+    if (gtype === 'dduk' && prob < 75) tips.push({ bg: '#EEF0FE', border: '#C8C3FB', icon: '💡', text: '득템 공구는 목표 인원 달성 기준을 너무 높게 잡으면 실패 위험이 높아집니다. 초기 목표 인원을 낮게 설정해 성공 경험을 쌓는 전략을 고려하세요.' });
+    if (tips.length === 0) tips.push({ bg: '#EDFAF4', border: '#A7F3D0', icon: '✅', text: '현재 조건이 성공 패턴에 잘 부합합니다. 유사 상품 반복 출시 시 고객 신선감 유지를 위해 주기적인 상품 다양화를 고려하세요.' });
+
+    document.getElementById('tips-area').innerHTML = tips.map(t =>
+      `<div class="tip-item" style="background:${t.bg};border-color:${t.border};">
+        <span class="tip-icon">${t.icon}</span>
+        <span class="tip-text">${t.text}</span>
+      </div>`
+    ).join('');
+
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+</script>
+</body>
+</html>
