@@ -1165,13 +1165,25 @@ function calculate() {
       factorSection.style.display = 'none';
       stageWrap.style.display = 'block';
 
-      const totalStages = window._halStages.length;
+      const stages     = window._halStages;
+      const totalStages = stages.length;
+      const lastDisc   = stages[totalStages - 1].disc; // 마지막 단계 할인율 (고객 구매 결정 기준)
 
-      stageList.innerHTML = window._halStages.map((s, i) => {
+      stageList.innerHTML = stages.map((s, i) => {
         const sDs  = discountScore(s.disc);
         const sQs  = qtyScore(s.qty);
-        const sPs  = ps; // 가격대는 원가 기준 공통
-        const sRaw = base.success + sDs.pts + sPs.pts + gs.pts + sQs.pts;
+        const sPs  = ps;
+
+        // ① 풀스루 효과: 마지막 단계 할인율이 높을수록 앞 단계도 수혜
+        //    앞 단계일수록 마지막 할인율 영향을 더 많이 받음
+        const pullThroughWeight = (totalStages - 1 - i) / Math.max(totalStages - 1, 1); // 0(마지막)~1(첫단계)
+        const lastDiscPts = discountScore(lastDisc).pts;
+        const pullThroughBonus = Math.round(pullThroughWeight * (lastDiscPts - sDs.pts) * 0.5);
+
+        // ② 단계 순서 보정: 앞 단계일수록 목표 수량이 적어 달성 쉬움 (+최대 8pt)
+        const orderBonus = Math.round(pullThroughWeight * 8);
+
+        const sRaw  = base.success + sDs.pts + sPs.pts + gs.pts + sQs.pts + pullThroughBonus + orderBonus;
         const sProb = Math.min(99, Math.max(10, Math.round(sRaw)));
 
         let sColor, sBg, sLabel, sVerdictTitle;
@@ -1180,13 +1192,20 @@ function calculate() {
         else if (sProb >= 35) { sColor='#F59E0B'; sBg='#FEF9EC'; sLabel='재검토 필요';      sVerdictTitle='성공 불확실'; }
         else                  { sColor='#DC2626'; sBg='#FEF2F2'; sLabel='성공 어려움';       sVerdictTitle='성공 어려움'; }
 
-        // 세부 요인 데이터
+        // 세부 요인 — 풀스루·순서 보정 포함한 실질 점수로 표시
+        const effectiveDiscPts = sDs.pts + pullThroughBonus;
+        const effectiveDiscPct = Math.min(100, Math.round(((effectiveDiscPts + 10) / 40) * 100));
         const factors = [
-          { name:'할인율', pct: Math.round(((sDs.pts+10)/40)*100), color: sDs.color, val: s.disc+'%' },
+          { name:'할인율', pct: effectiveDiscPct, color: effectiveDiscPts >= 18 ? '#22C55E' : effectiveDiscPts >= 10 ? '#5B4CF5' : '#F59E0B', val: s.disc + (pullThroughBonus > 0 ? `+` : '') + '%' },
           { name:'가격대', pct: Math.round(((sPs.pts+15)/30)*100), color: sPs.color, val: sPs.label.split(' ')[0] },
-          { name:'수량',   pct: Math.round(((sQs.pts+18)/28)*100), color: sQs.color, val: sQs.label.split(' ')[0] },
+          { name:'수량',   pct: Math.min(100, Math.round(((sQs.pts + orderBonus + 18)/46)*100)), color: sQs.pts + orderBonus >= 10 ? '#22C55E' : sQs.pts + orderBonus >= 5 ? '#5B4CF5' : '#F59E0B', val: sQs.label.split(' ')[0] },
           { name:'카테고리', pct: Math.round((base.cvr/85)*100), color: base.cvr>=70?'#22C55E':base.cvr>=55?'#5B4CF5':'#F59E0B', val: base.cvr+'%' },
         ];
+
+        // 풀스루 설명 (앞 단계에만 표시)
+        const pullNote = pullThroughBonus > 0
+          ? `<div style="font-size:10px;color:#5B4CF5;font-weight:600;margin-top:4px;">↑ 마지막 단계 ${lastDisc}% 할인 유인 반영</div>`
+          : '';
 
         const factorRows = factors.map((f, fi) =>
           `<div class="stage-factor-row">
@@ -1216,25 +1235,32 @@ function calculate() {
               수량 ${s.qty.toLocaleString()}개 · 공구가 ${s.price.toLocaleString()}원 · 할인율 ${s.disc}%
             </div>
             ${factorRows}
+            ${pullNote}
           </div>`;
       }).join('');
 
       // 막대 애니메이션
-      window._halStages.forEach((s, i) => {
+      stages.forEach((s, i) => {
         const sDs  = discountScore(s.disc);
         const sQs  = qtyScore(s.qty);
-        const sRaw = base.success + sDs.pts + ps.pts + gs.pts + sQs.pts;
+        const pullThroughWeight = (totalStages - 1 - i) / Math.max(totalStages - 1, 1);
+        const lastDiscPts = discountScore(lastDisc).pts;
+        const pullThroughBonus = Math.round(pullThroughWeight * (lastDiscPts - sDs.pts) * 0.5);
+        const orderBonus = Math.round(pullThroughWeight * 8);
+        const sRaw  = base.success + sDs.pts + ps.pts + gs.pts + sQs.pts + pullThroughBonus + orderBonus;
         const sProb = Math.min(99, Math.max(10, Math.round(sRaw)));
-        const factors = [
-          Math.round(((sDs.pts+10)/40)*100),
-          Math.round(((ps.pts+15)/30)*100),
-          Math.round(((sQs.pts+18)/28)*100),
-          Math.round((base.cvr/85)*100),
+
+        const effectiveDiscPts = sDs.pts + pullThroughBonus;
+        const factorPcts = [
+          Math.min(100, Math.round(((effectiveDiscPts + 10) / 40) * 100)),
+          Math.round(((ps.pts + 15) / 30) * 100),
+          Math.min(100, Math.round(((sQs.pts + orderBonus + 18) / 46) * 100)),
+          Math.round((base.cvr / 85) * 100),
         ];
         setTimeout(() => {
           const bar = document.getElementById('stage-bar-' + i);
           if (bar) bar.style.width = sProb + '%';
-          factors.forEach((pct, fi) => {
+          factorPcts.forEach((pct, fi) => {
             const fb = document.getElementById(`sfb-${i}-${fi}`);
             if (fb) fb.style.width = Math.max(4, pct) + '%';
           });
