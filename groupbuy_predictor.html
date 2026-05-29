@@ -981,7 +981,7 @@ function syncFromSale() {
 }
 
 const CAT_BASE = {
-  coffee_cheap:  { cvr: 72, success: 40 },
+  coffee_cheap:  { cvr: 72, success: 55 },  // 실측: 메가 아메리카노 26%/300개 10분 매진 반영
   coffee_mid:    { cvr: 55, success: 28 },
   voucher:       { cvr: 85, success: 45 },
   food_delivery: { cvr: 60, success: 25 },
@@ -1016,12 +1016,15 @@ function gtypeScore(g) {
   return g === 'hal' ? { pts: 4 } : { pts: 2 };
 }
 
-function qtyScore(q) {
+function qtyScore(q, tier) {
+  // 저가(very_low/low) 상품은 단가가 낮아 대량도 빠르게 소화됨 → 패널티 완화
+  const isLowPrice = tier === 'very_low' || tier === 'low';
+
   if (q <= 50)   return { pts: 10, label: '소량 (50개↓)',      color: '#22C55E' };
   if (q <= 100)  return { pts:  5, label: '보통 (51~100개)',    color: '#5B4CF5' };
   if (q <= 200)  return { pts:  0, label: '다소 많음 (101~200개)', color: '#F59E0B' };
-  if (q <= 500)  return { pts: -8, label: '많음 (201~500개)',   color: '#F59E0B' };
-  return               { pts:-18, label: '매우 많음 (500↑)',    color: '#EF4444' };
+  if (q <= 500)  return { pts: isLowPrice ? -3 : -8,  label: '많음 (201~500개)',   color: '#F59E0B' };
+  return               { pts: isLowPrice ? -10 : -18, label: '매우 많음 (500↑)',   color: '#EF4444' };
 }
 
 function getPriceTier(v) {
@@ -1082,7 +1085,7 @@ function calculate() {
   const ds   = discountScore(d);
   const ps   = priceScore(tier);
   const gs   = gtypeScore(gtype);
-  const qs   = qtyScore(qty);
+  const qs   = qtyScore(qty, tier);
 
   const raw  = base.success + ds.pts + ps.pts + gs.pts + qs.pts;
   const prob = Math.min(99, Math.max(10, Math.round(raw)));
@@ -1171,7 +1174,7 @@ function calculate() {
 
       stageList.innerHTML = stages.map((s, i) => {
         const sDs  = discountScore(s.disc);
-        const sQs  = qtyScore(s.qty);
+        const sQs  = qtyScore(s.qty, tier);
         const sPs  = ps;
 
         // ① 풀스루 효과: 마지막 단계 할인율이 높을수록 앞 단계도 수혜
@@ -1242,7 +1245,7 @@ function calculate() {
       // 막대 애니메이션
       stages.forEach((s, i) => {
         const sDs  = discountScore(s.disc);
-        const sQs  = qtyScore(s.qty);
+        const sQs  = qtyScore(s.qty, tier);
         const pullThroughWeight = (totalStages - 1 - i) / Math.max(totalStages - 1, 1);
         const lastDiscPts = discountScore(lastDisc).pts;
         const pullThroughBonus = Math.round(pullThroughWeight * (lastDiscPts - sDs.pts) * 0.5);
